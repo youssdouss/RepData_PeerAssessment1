@@ -1,25 +1,105 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "activity monitoring"
+author: "med yassine"
+date: "4/20/2022"
+output: html_document
 ---
 
-
-## Loading and preprocessing the data
-
-
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
+````{r echo = TRUE}
+options(repos = list(CRAN="http://cran.rstudio.com/"))
+install.packages("dplyr")
+library("dplyr")
+````
 
 
 
-## Imputing missing values
+## download the data and know it:
+```{r}
+activity <-read.csv("activity.csv")
+head("activity.csv")
+```
+
+## Histogram of the total number of steps taken each day
+```{r echo = TRUE}
+Total_step_day <- activity %>%
+     group_by(date) %>%
+     summarize(total_step = sum(steps, na.rm = TRUE))
+ hist(Total_step_day$total_step, xlab = "Total step per day", main = "the total number of steps taken each day", col ="red") 
+```
+
+## Mean and median number of steps taken each day
+```{r echo = TRUE}
+
+mean(Total_step_day$total_step)
+median(Total_step_day$total_step)
+```
+## Time series plot of the average number of steps taken
+
+```{r echo = TRUE}
+average_step_interval <- activity %>%
+     group_by(interval)%>%
+     summarise(average_step = mean(steps, na.rm = TRUE))
+plot(average_step_interval$interval, average_step_interval$average_step, type = "l", xlab = "interval", ylab = "average step", main = "Time series of the average number of steps taken", col = "red")
+```
+
+## The 5-minute interval that, on average, contains the maximum number of steps
+```{r echo = TRUE}
+average_step_interval$interval[which.max(average_step_interval$average_step)]
+```
+
+## Code to describe and show a strategy for imputing missing data
+```{r echo = TRUE}
+
+sum(is.na(activity$steps))
+activity_noNA_steps <- activity
+for (i in 1:nrow(activity)) {
+     if (is.na(activity$steps[i])) {
+          activity_noNA_steps$steps[i] <- average_step_interval$average_step[ 
+                 activity_noNA_steps$interval[i] == average_step_interval$interval]
+     }
+     
+}
+head(activity_noNA_steps)
+```
+
+## Histogram of the total number of steps taken each day after missing values are imputed
+```{r echo = TRUE}
+
+Total_noNAsteps_day <- activity_noNA_steps%>%
+     group_by(date)%>%
+     summarize(total_noNAstep = sum(steps))
+hist(Total_noNAsteps_day$total_noNAstep, xlab ="step", col= "red", main = "Histogram of the total number of steps taken each day")
+```
+
+
+   
+##Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r echo = TRUE}
+activityDow <- activity_noNA_steps
+activityDow$date <- as.Date(activityDow$date)
+activityDow$date <- ifelse(weekdays(activityDow$date) %in% c("Saturday", "Sunday"), "weekend", "weekday")
+activityDow$date <- as.factor(activityDow$date)
+```
+
+```{r echo=TRUE}
+activity_weekend <- filter(activityDow, date == "weekend")%>%
+     group_by(interval)%>%
+     summarize(avg_step = mean(steps))
+
+activity_weekday <- filter(activityDow, date == "weekday") %>%
+     group_by(interval)%>%
+     summarize( avg_step = mean(steps))
+
+par(mfrow = c(1,2))
+plot(activity_weekday$interval, activity_weekday$avg_step, type = "l", xlab = "interval", ylab = "step",
+     main = " weekdays", col = "red")
+plot(activity_weekend$interval, activity_weekend$avg_step, type = "l", xlab = "interval", ylab = "step",
+     main = " weekend", col = "red")
+
+```
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+
+     
